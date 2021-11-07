@@ -6,33 +6,53 @@ pipeline {
         maven "M2_HOME"
     }
 
-    stages {
-        stage('Build') {
+     stages {
+        stage('Checkout') {
             steps {
                 // Get some code from a GitHub repository
                 git 'https://github.com/cloudtechmasters/spring-boot-azure-micro-svc-sept19'
-
-                // Run Maven on a Unix agent.
-                sh "mvn -Dmaven.test.failure.ignore=true clean package"
-
-                // To run Maven on a Windows agent, use
-                // bat "mvn -Dmaven.test.failure.ignore=true clean package"
+              //  sh "git clone 'https://github.com/cloudtechmasters/spring-boot-azure-micro-svc-sept19'"
             }
-
             
         }
+        
+        stage('Build') {
+            steps {
+                // Run Maven on a Unix agent.
+                sh "mvn -Dmaven.test.failure.ignore=true clean package"
+            }
+        }
+		
+		stage('UploadToNexus') {
+            steps {
+      nexusArtifactUploader(
+      nexusVersion: 'nexus3',
+      protocol: 'http',
+      nexusUrl: '20.198.83.181:8081',
+      groupId: 'com.cloudtechmasters',
+      version: '0.0.1-SNAPSHOT',
+      repository: 'maven-snapshots',
+      credentialsId: 'nexuscreds',
+      artifacts: [
+      [artifactId: 'spring-boot-azure-micro-svc-sept19',
+      classifier: '',
+      file: 'target/spring-boot-azure-micro-svc-sept19-0.0.1-SNAPSHOT.jar',
+      type: 'jar']
+      ])
+      }
+        }
+        
         stage('Deploy') {
  
   steps {
     sh 'pwd'
     sh 'ls -lrt'
-   // sh 'mv target/simple-maven-project-with-tests-1.0-SNAPSHOT.jar	my-app.jar'
     sshPublisher(
       continueOnError: false, 
       failOnError: true,
       publishers: [
         sshPublisherDesc(
-          configName: "Deployserver",
+          configName: "deployserver",
           transfers: [sshTransfer(sourceFiles: 'target/spring-boot-azure-micro-svc-sept19-0.0.1-SNAPSHOT.jar')],
           verbose: true
         )
@@ -40,6 +60,7 @@ pipeline {
     )
   }
 }
-    }
+         
+     }
     
 }
