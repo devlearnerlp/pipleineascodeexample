@@ -1,0 +1,67 @@
+pipeline {
+    agent any
+
+    tools {
+        // Install the Gradle and add it to the path.
+        gradle "GRADLE_HOME"
+    }
+
+     stages {
+        stage('Checkout') {
+            steps {
+                // Get some code from a GitHub repository
+                git 'https://github.com/cloudtechmasters/spring-boot-gradle-demo'
+                sh 'git checkout master'
+              //  sh "git clone 'https://github.com/cloudtechmasters/spring-boot-azure-micro-svc-sept19'"
+            }
+            
+        }
+        
+        stage('Build') {
+            steps {
+                // Run Gradle on a Unix agent.
+                sh "gradle build"
+            }
+        }
+		
+		stage('UploadToNexus') {
+            steps {
+      nexusArtifactUploader(
+      nexusVersion: 'nexus3',
+      protocol: 'http',
+      nexusUrl: '20.198.83.181:8081',
+      groupId: 'com.example',
+      version: '0.0.1-SNAPSHOT',
+      repository: 'maven-snapshots',
+      credentialsId: 'nexuscreds',
+      artifacts: [
+      [artifactId: 'spring-boot-gradle-demo',
+      classifier: '',
+      file: 'build/libs/spring-boot-gradle-demo-0.0.1-SNAPSHOT.jar',
+      type: 'jar']
+      ])
+      }
+        }
+        
+        stage('Deploy') {
+ 
+  steps {
+    sh 'pwd'
+    sh 'ls -lrt'
+    sshPublisher(
+      continueOnError: false, 
+      failOnError: true,
+      publishers: [
+        sshPublisherDesc(
+          configName: "deployserver",
+          transfers: [sshTransfer(sourceFiles: 'build/libs/spring-boot-gradle-demo-0.0.1-SNAPSHOT.jar')],
+          verbose: true
+        )
+      ]
+    )
+  }
+}
+         
+     }
+    
+}
