@@ -1,0 +1,12 @@
+stage('SonarQube analysis') {
+     dir("$gitRepo"){
+    withSonarQubeEnv('SonarQube') {
+      sh "pwd"
+      MVN="/var/lib/jenkins/tools/hudson.tasks.Maven_MavenInstallation/Maven_3.3.9/bin/mvn"
+      echo "Running JaCoCO stuff"
+      sh "$MVN clean org.jacoco:jacoco-maven-plugin:prepare-agent install -Dmaven.test.failure.ignore=false"
+      echo "running clean verify"
+      sh "$MVN clean verify sonar:sonar -Dsonar.host.url=http://111.11.1.111:9000" //-Dsonar.java.binaries=/etc/sonarqube"
+      echo "running clean install deploy"
+      sh "$MVN clean install deploy -DskipTests"
+}
